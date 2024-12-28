@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resonare</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <header>
+        <h1><img src="icon.png" alt="icon"></h1>
+    </header>
+    <main>
+        <div id="chat-window">
+            <!-- Messages will be displayed here -->
+        </div>
+        <div class="cont">
+            <input type="text" id="message-input" placeholder="Type your message...">
+            <button id="send-button">Send</button>
+        </div>
+    </main>
+
+
+
+    <script type="importmap">
+        {
+          "imports": {
+            "@google/generative-ai": "https://esm.run/@google/generative-ai"
+          }
+        }
+    </script>
+
+    <script type="module">
+        import { GoogleGenerativeAI } from "@google/generative-ai"
+        document.getElementById('send-button').addEventListener('click', sendMessage);
+        document.getElementById('message-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        const googleAI = new GoogleGenerativeAI('AIzaSyAundOlP8EadjTlILOfBBmzBcHFrUeN95g');
+        const model = googleAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const chat = model.startChat({
+            history: [
+                {
+                    role: "user",
+                    parts: [{ text: "Hello, my mental health is really bad right now." }],
+                },
+                {
+                    role: "model",
+                    parts: [{ text: "Sure, i can help you with it. " }],
+                },
+            ],
+            generationConfig: {
+                temperature: 1.8,
+                topK: 1,
+                topP: 1,
+                maxOutputTokens: 350,
+                responseMimeType: "text/plain",
+            },
+        });
+        
+        async function sendMessage() {
+            const userMessage = document.getElementById('message-input').value;
+            if (userMessage.trim() === '') return;
+
+            const chatWindow = document.getElementById('chat-window');
+
+            // Create user message row
+            const userMsgRow = document.createElement('div');
+            userMsgRow.className = 'msg-row';
+            userMsgRow.innerHTML = `
+        <div class="msg-text user">
+            <h2>User</h2>
+            <p>${userMessage}</p>
+        </div>
+    `;
+            chatWindow.appendChild(userMsgRow);
+            document.getElementById('message-input').value = '';
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            let result = await chat.sendMessage(userMessage);
+            
+            // fetch("/api/messages", {
+            //     method: "POST",
+            //     headers: new Headers({ 'content-type': 'application/json' }),
+            //     body: JSON.stringify({ message: userMessage })
+            // })
+            // Simulate AI response
+            let fullResponse = result.response.text()
+            fullResponse = fullResponse.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
+            fullResponse = fullResponse.replace(/\n/g, '<br>');
+            let halftext = ''
+            const aiMsgRow = document.createElement('div');
+            aiMsgRow.className = 'msg-row';
+            chatWindow.appendChild(aiMsgRow);
+            for (let i = 0; i < fullResponse.length; i++) {
+                halftext += fullResponse[i]  // Append letter by letter to the full response
+                aiMsgRow.innerHTML = `
+        <div class="msg-text bot">
+            <h2>AI</h2>
+            <p>${halftext}</p>
+        </div>
+    `;
+                // Add a small delay between each letter (e.g., 5ms)
+                await new Promise(resolve => setTimeout(resolve, 5));
+            }
+            setTimeout(() => {
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }, 1000);
+        }
+
+    </script>
+</body>
+
+</html>
